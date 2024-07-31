@@ -6,7 +6,7 @@ class apiError extends Error {
         stack = ''
     ){
         super(message) //the parent class (Error) constructor with the message parameter
-        this,statusCode = statusCode,
+        this.statusCode = statusCode,
         this.data = null,
         this.message = message,
         this.success = false,

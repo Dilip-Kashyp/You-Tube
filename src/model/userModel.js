@@ -1,81 +1,92 @@
-const mongooes = require('mongoose');
-const bcrypt = require('bcrypt')
+const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+var Schema = mongoose.Schema;
 
- const userSchema = mongooes.Schema({
-    username : {
-        type : String,
-        required : true,
-        unique : true,
-        lowercase : true,
-        trim : true,
-        index : true
+const userSchema = mongoose.Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
     },
-    email : {
-        type : String,
-        required : true,
-        lowercase : true,
-        unique : true
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      unique: true,
     },
-    fullname : {
-        type : String,
-        required : true,
-        trim : true
+    fullname: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    avatar : {
-        type : String,
-        required : true,
+    avatar: {
+      type: String,
+      required: true,
     },
-    coverImage : {
-        type : String,
+    coverImage: {
+      type: String,
     },
-    watchHistory : {
-        type : Schema.Types.ObjectId,
-        ref : "Video"
+    watchHistory: {
+      type: Schema.Types.ObjectId,
+      ref: "Video",
     },
-    password : {
-        type : String,
-        required : [true, "Password is required!"],
+    password: {
+      type: String,
+      required: [true, "Password is required!"],
     },
-    refreshToken : {
-        type : String,
+    refreshToken: {
+      type: String,
     },
- },{
-    timrstamps : true,
- }
+  },
+  {
+    timrstamps: true,
+  }
 );
 
 userSchema.pre("save", async function (next) {
-    if(!this.isModified("password")) return next();
-    this.password = bcrypt.hash(this.password, 9);
+  if (!this.isModified("password")) return next();
+  try {
+    this.password = await bcrypt.hash(this.password, 9);
     next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
-    return await bcrypt.compare(password, this.password);
+  return await bcrypt.compare(password, this.password);
 };
 
-userSchema.methods.generateAccessToken = function (){
-    jwt.sign({
-        _id : this.is,
-        name : this.name,
-        username : this.username,
-        fullname : this.fullname
+userSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      name: this.name,
+      username: this.username,
+      fullname: this.fullname,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-        expiresIn : process.env.ACCESS_TOKEN_EXPIRY
-    })
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    }
+  );
 };
 
-userSchema.methods.generateRefreshToken = function (){
-    jwt.sign({
-        _id : this.is,
-
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-        expiresIn : process.env.REFRESH_TOKEN_EXPIRY
-    })
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    }
+  );
 };
 
- module.exports = mongooes.model("User",userSchema);
+module.exports = mongoose.model("User", userSchema);

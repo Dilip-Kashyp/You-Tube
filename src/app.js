@@ -17,7 +17,7 @@ app.use(cookie());
 
 // importing Route 
 const userRouter = require('./route/userRouter.js');
-app.use('/api/v1/user', userRouter);
+app.use('/api/v1/user', userRouter); 
 
 
 

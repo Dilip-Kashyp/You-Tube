@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+var Schema = mongoose.Schema;
 const mongooseaggregate = require('npm i mongoose-aggregate-paginate-v2');
 const videoSchema = mongoose.Schema({
     video : {
