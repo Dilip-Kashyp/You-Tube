@@ -5,11 +5,13 @@ const {
   logoutUser,
   refreshAccessToken,
   changePassword,
-  updateUserDetails,
-  updateAvatar,
   updateCoverImage,
+  getWatchHistory,
   getChannelProfile,
-} = require("../controller/userRegister.js");
+  updateAvatar,
+  getCurrentUser,
+  updateUserDetails,
+} = require("../controller/userController.js");
 const { upload } = require("../middleware/multer.js");
 const { verifyJWT } = require("../middleware/auth.js");
 const router = Router();
@@ -26,17 +28,22 @@ router.route("/register").post(
     },
   ]),
   userRegister
-);
+); //
 
-router.route("/login").post(userLogin);
+router.route("/login").post(userLogin); //
 
-router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/refresh-token").post(refreshAccessToken);
-router.route("/change-password").post(changePassword);
-router.route("/current-user").get(getCurrentUser);
-router.route("/update-user-details").patch(updateUserDetails);
-router.route("/update-avatar").patch(updateAvatar);
-router.route("/update-cover-image").patch(updateCoverImage);
-router.route("/channel-profile").patch(getChannelProfile);
+router.route("/logout").post(verifyJWT, logoutUser); //
+router.route("/refresh-token").post(refreshAccessToken); //
+router.route("/change-password").post(verifyJWT, changePassword); //
+router.route("/current-user").get(verifyJWT, getCurrentUser); //
+router.route("/update-account").patch(verifyJWT, updateUserDetails); //
+
+router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateAvatar); //
+router
+  .route("/cover-image")
+  .patch(verifyJWT, upload.single("k"), updateCoverImage); //
+
+router.route("/c/:username").get(verifyJWT, getChannelProfile); //
+router.route("/history").get(verifyJWT, getWatchHistory); //
 
 module.exports = router;

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("../utils/asyncHandler.js");
 const apiError = require("../utils/apiErrors.js");
@@ -147,8 +148,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     const refreshTokenFormFE =
-      req.cookies.refreshToken || req.body.Header.refreshToken;
-    if (refreshTokenFormFE) {
+      req.cookies?.refreshToken || req.body.Header?.refreshToken;
+    if (!refreshTokenFormFE) {
       throw new apiError(401, "unauthorizes request");
     }
 
@@ -167,7 +168,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new apiError(401, "invalid refresh token ");
     }
 
-    if (verifiedToken !== user?.refreshToken) {
+    if (refreshTokenFormFE !== user?.refreshToken) {
+      console.log("fe", refreshTokenFormFE, user?.refreshToken);
       throw new apiError(401, "refreshToken expried or used");
     }
 
@@ -190,7 +192,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             accessToken,
             refreshToken: newRefreshToken,
           },
-          "new  Token refreshed"
+          "token refreshed"
         )
       );
   } catch (error) {
@@ -220,7 +222,7 @@ const changePassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
-    .json(apiResponse(200, req.user, "current user fetched"));
+    .json(new apiResponse(200, req.user, "current user fetched"));
 });
 
 const updateUserDetails = asyncHandler(async (req, res) => {
@@ -233,14 +235,14 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     req.user?._id,
     {
       $set: {
-        fullName: fullName,
+        fullname: fullName,
         email: email,
       },
     },
     {
       new: true,
     }
-  ).select("-password");
+  ).select("-password -refreshToken");
 
   return res
     .status(200)
@@ -262,7 +264,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
       req.user?._id,
       {
         $set: {
-          avatar: CoverImageUrl.url,
+          coverImage: CoverImageUrl.url,
         },
       },
       {
@@ -272,7 +274,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new apiResponse(200, { user }, "avatar updated"));
+      .json(new apiResponse(200, { user }, "cover image updated"));
   } catch (error) {
     console.log(error);
   }
@@ -310,20 +312,20 @@ const updateAvatar = asyncHandler(async (req, res) => {
 });
 
 const getChannelProfile = asyncHandler(async (req, res) => {
-  const { userName } = req.params;
-  if (userName) {
-    throw new apiError(400, "username is missing");
+  const { username } = req.params;
+  if (!username) {
+    throw new apiError(400, "Username is missing");
   }
 
-  const channal = User.aggregate([
+  const channel = await User.aggregate([
     {
       $match: {
-        username: userName?.toLowerCase(),
+        username: username.toLowerCase(),
       },
     },
     {
       $lookup: {
-        from: subscriptions,
+        from: "subscriptions",
         localField: "_id",
         foreignField: "channel",
         as: "subscribers",
@@ -331,7 +333,7 @@ const getChannelProfile = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
-        from: subscriptions,
+        from: "subscriptions",
         localField: "_id",
         foreignField: "subscriber",
         as: "subscribed",
@@ -345,19 +347,14 @@ const getChannelProfile = asyncHandler(async (req, res) => {
         channelSubCount: {
           $size: "$subscribed",
         },
-
         isSubed: {
-          $cond: {
-            if: { $in: [req.user?._id, "subscribers.subscriber"] },
-            then: true,
-            else: false,
-          },
+          $in: [req.user?._id, "$subscribers.subscriber"],
         },
       },
     },
     {
       $project: {
-        fullName: 1,
+        fullname: 1,
         username: 1,
         subCount: 1,
         channelSubCount: 1,
@@ -368,14 +365,49 @@ const getChannelProfile = asyncHandler(async (req, res) => {
       },
     },
   ]);
-  if(!channal?.length()){
-    throw new apiError(400, "channel does not exists")
+
+  if (!channel.length) {
+    throw new apiError(400, "Channel does not exist");
   }
 
-  res.status(200).
-  json(new apiResponse(200, channal[0], "channel fetched"))
+  return res
+    .status(200)
+    .json(new apiResponse(200, channel[0], "Channel fetched"));
 });
 
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: { _id: new mongoose.Types.ObjectId(req.user._id) },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  if (!user.length) {
+    throw new apiError(400, "User does not exist");
+  }
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, user[0].watchHistory, "Watch history fetched"));
+});
 module.exports = {
   userRegister,
   userLogin,
@@ -386,5 +418,6 @@ module.exports = {
   updateUserDetails,
   updateAvatar,
   updateCoverImage,
-  getChannelProfile
+  getChannelProfile,
+  getWatchHistory,
 };
