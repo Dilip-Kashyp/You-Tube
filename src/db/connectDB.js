@@ -7,7 +7,7 @@ const connectionDB = async () => {
         console.log(`Mongooes connected !! DB_Host  ${connect.connection.host}`)
     } catch (error) {
         console.log("Mongooes error :", error);
-        throw new error;
+
     }
 }
 
