@@ -52,7 +52,7 @@ const userRegister = asyncHandler(async (req, res) => {
     fullname,
     email,
     username: username.toLowerCase(),
-    avatar: avatar.url,
+    avatar: avatar?.url,
     coverImage: coverImage?.url || "",
     password,
   });
