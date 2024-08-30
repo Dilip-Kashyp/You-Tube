@@ -16,10 +16,18 @@ app.use(express.urlencoded({ extended: true })); // accept url data in any forma
 app.use(express.static("public")); // store data public folder
 app.use(cookie());
 
-const healthCheck = require("./controller/healthCheck.js");
-app.get("/healthcheck", healthCheck);
+//health Check route
+const healthCheck = require('./route/healthCheck.js');
+app.use("/healthcheck", healthCheck);
 
-// importing Rout
+//home route
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message : "🚧 Page Under Construction 🚧 "
+  })
+})
+
+// importing Route
 const userRouter = require("./route/userRouter.js");
 app.use("/api/v1/user", userRouter);
 
